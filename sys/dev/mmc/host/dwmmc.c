@@ -518,6 +518,8 @@ parse_fdt(struct dwmmc_softc *sc)
 	int len;
 	int error;
 
+	device_printf(sc->dev, "DEBUG: parsing fdt for dwmmc\n");
+
 	if ((node = ofw_bus_get_node(sc->dev)) == -1)
 		return (ENXIO);
 
@@ -546,6 +548,12 @@ parse_fdt(struct dwmmc_softc *sc)
 	if ((len = OF_getproplen(node, "clock-frequency")) > 0) {
 		OF_getencprop(node, "clock-frequency", dts_value, len);
 		bus_hz = dts_value[0];
+		device_printf(sc->dev, "DEBUG: found clock frequency w/ bus_hz=%d\n", bus_hz);
+	} else {
+		device_printf(sc->dev, "DEBUG: no clock-frequency property found\n");
+		bus_hz = 198000000;
+		device_printf(sc->dev, "HACK defaulted clock-frequency to %x (%d)\n", bus_hz, bus_hz);
+		sc->bus_hz = bus_hz;
 	}
 
 	/* IP block reset is optional */
@@ -591,8 +599,11 @@ parse_fdt(struct dwmmc_softc *sc)
 	if (error != 0 &&
 	    error != ENOENT &&
 	    error != ENODEV) {
-		device_printf(sc->dev, "Cannot get 'biu' clock\n");
+		device_printf(sc->dev, "Cannot get 'biu' clock: lookup returned %d\n", error);
 		goto fail;
+	} else {
+		device_printf(sc->dev, "DEBUG: clk_get_by_ofw_name(sc->dev, 0, \"biu\", &sc->biu)==: %d\n", error);
+		device_printf(sc->dev, "DEBUG: biu clock address: %p\n", sc->biu);
 	}
 
 	if (sc->biu) {
@@ -611,11 +622,16 @@ parse_fdt(struct dwmmc_softc *sc)
 	if (error != 0 &&
 	    error != ENOENT &&
 	    error != ENODEV) {
-		device_printf(sc->dev, "Cannot get 'ciu' clock\n");
+		device_printf(sc->dev, "Cannot get 'ciu' clock, clk_get_by_ofw_name(sc->dev, 0, \"ciu\", &sc->ciu) == %d\n", error);
 		goto fail;
+	} else {
+		device_printf(sc->dev, "DEBUG: clk_get_by_ofw_name(sc->dev, 0, \"ciu\", &sc->ciu)==: %d\n", error);
+		device_printf(sc->dev, "DEBUG: ciu clock address: %p\n", sc->ciu);
 	}
 
 	if (sc->ciu) {
+		device_printf(sc->dev, "DEBUG: setting up ciu clock at %p and related properties\n", sc->ciu);
+		device_printf(sc->dev, "DEBUG: currently bus_hz==%d\n", bus_hz);
 		if (bus_hz != 0) {
 			error = clk_set_freq(sc->ciu, bus_hz, 0);
 			if (error != 0)
@@ -627,7 +643,10 @@ parse_fdt(struct dwmmc_softc *sc)
 			device_printf(sc->dev, "cannot enable ciu clock\n");
 			goto fail;
 		}
-		clk_get_freq(sc->ciu, &sc->bus_hz);
+		device_printf(sc->dev, "DEBUG: enabled ciu clock at %p\n", sc->ciu);
+		device_printf(sc->dev, "DEBUG: setting bus frequency from ciu clock\n");
+		int tmp = clk_get_freq(sc->ciu, &sc->bus_hz);
+		device_printf(sc->dev, "DEBUG: clk_get_fre(sc->ciu, ...) = %d\n", tmp);
 	}
 
 	/* Enable regulators */

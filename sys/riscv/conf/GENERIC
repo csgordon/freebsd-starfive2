@@ -223,3 +223,12 @@ device		fu740_pci_dw
 device		sifive_gpio
 device		sifive_spi
 include		"../sifive/std.sifive"
+
+# TODO: possibly relocate these to a starfive-specific file
+device		mmc
+device		sdhci
+device		dwmmc
+# required for the dwmmc code to build
+device		regulator
+# required for the sdhci code to build
+device		phy
