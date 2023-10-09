@@ -222,5 +222,5 @@ static struct g_class g_flashmap_class = {
 	.taste = g_flashmap_taste,
 };
 
-DECLARE_GEOM_CLASS(g_flashmap_class, g_flashmap);
-MODULE_VERSION(g_flashmap, 0);
+DECLARE_GEOM_CLASS(g_flashmap_class, geom_flashmap);
+MODULE_VERSION(geom_flashmap, 0);
